@@ -3,553 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exchange Price Comparison</title>
+    <title>Crypto Price Tracker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <!-- Keep your existing CSS here -->
-	
     <style>
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            position: relative;
-            background-color: var(--bg-secondary);
-            margin: 15% auto;
-            padding: 2rem;
-            border-radius: 1rem;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        .close-modal {
-            position: absolute;
-            right: 1rem;
-            top: 1rem;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-
-        .calculator-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .form-group label {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-        }
-
-        .form-group input {
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--text-secondary);
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-        }
-
-        .calculator-result {
-            margin-top: 1rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: var(--bg-primary);
-        }
-
-        .result-item {
-            margin: 0.5rem 0;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            background-color: rgba(59, 130, 246, 0.1);
-        }
-
-        .calculate-btn {
-            padding: 0.5rem 1rem;
-            background-color: var(--accent-blue);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            font-weight: 500;
-            transition: opacity 0.2s;
-        }
-
-        .calculate-btn:hover {
-            opacity: 0.9;
-        }
-
-        :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --accent-green: #22c55e;
-            --accent-red: #ef4444;
-            --accent-blue: #3b82f6;
-            --binance-color: #f3ba2f;
-            --bybit-color: #00b4c9;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.5;
-            min-height: 100vh;
-        }
-
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 20px;
         }
-
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding: 1rem;
-            background-color: var(--bg-secondary);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        .exchange-section {
+            margin-bottom: 30px;
         }
-
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
+        .exchange-title {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #333;
         }
-
-        .connection-status {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-top: 0.5rem;
+        .price-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
         }
-
-        .pair-card {
-            background-color: var(--bg-secondary);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        .price-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            min-width: 200px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
-        .pair-header {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            text-align: center;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--text-secondary);
+        .symbol {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
         }
-
-        .exchange-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .exchange-box {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            position: relative;
-        }
-
-        .exchange-box.binance {
-            background-color: rgba(243, 186, 47, 0.1);
-            border: 1px solid var(--binance-color);
-        }
-
-        .exchange-box.bybit {
-            background-color: rgba(0, 180, 201, 0.1);
-            border: 1px solid var(--bybit-color);
-        }
-
-        .exchange-name {
-            font-size: 1rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: var(--text-secondary);
-        }
-
         .price {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0.5rem 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
         }
-
-        .price-change {
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-
         .timestamp {
-            color: var(--text-secondary);
-            font-size: 0.75rem;
-            margin-top: 0.5rem;
-        }
-
-        .profit-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            padding: 1rem;
-            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        .profit-panel-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .profit-input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .profit-input {
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            border: 1px solid var(--text-secondary);
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .profit-result {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: var(--bg-primary);
-            margin-top: 0.5rem;
-        }
-
-        .opportunity-indicator {
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            margin-top: 0.5rem;
-            font-weight: 500;
-            text-align: center;
-        }
-
-        .opportunity-yes {
-            background-color: rgba(34, 197, 94, 0.1);
-            color: var(--accent-green);
-        }
-
-        .opportunity-no {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: var(--accent-red);
-        }
-
-        .container {
-            margin-bottom: 200px;  /* Make room for fixed profit panel */
-        }
-
-        .price-difference {
-            text-align: center;
-            margin-top: 1rem;
-            padding: 0.5rem;
-            background-color: var(--bg-primary);
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        .flash {
-            animation: flash-animation 0.5s ease-out;
-        }
-
-        @keyframes flash-animation {
-            0% { background-color: transparent; }
-            50% { background-color: rgba(59, 130, 246, 0.1); }
-            100% { background-color: transparent; }
-        }
-
-        @media (max-width: 640px) {
-            .container {
-                padding: 1rem;
-            }
-
-            .exchange-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .price {
-                font-size: 1.25rem;
-            }
+            color: #666;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Exchange Price Comparison</h1>
-            <div id="connectionStatus" class="connection-status">
-                Connecting...
-            </div>
-        </div>
+        <h1>Crypto Price Tracker</h1>
         
-        <div id="pairs-container">
-            {% for pair in trading_pairs %}
-            <div class="pair-card" id="{{ pair }}-card">
-                <div class="pair-header">{{ pair }}</div>
-                <div class="exchange-grid">
-                    <div class="exchange-box binance" id="binance-{{ pair }}">
-                        <div class="exchange-name">Binance</div>
-                        <div class="price">Loading...</div>
-                        <div class="price-change"></div>
-                        <div class="timestamp">--:--:--</div>
-                    </div>
-                    <div class="exchange-box bybit" id="bybit-{{ pair }}">
-                        <div class="exchange-name">Bybit</div>
-                        <div class="price">Loading...</div>
-                        <div class="price-change"></div>
-                        <div class="timestamp">--:--:--</div>
-                    </div>
-                </div>
-                <div class="price-difference" id="diff-{{ pair }}">
-                    Calculating price difference...
-                </div>
-            </div>
-            {% endfor %}
+        <div class="exchange-section">
+            <h2 class="exchange-title">Binance Prices</h2>
+            <div id="binance-prices" class="price-cards"></div>
         </div>
-    </div>
 
-    <!-- Simplified Profit Panel -->
-    <div class="profit-panel">
-        <div class="profit-panel-content">
-            <div class="profit-input-group">
-                <label>Trading Pair</label>
-                <select id="pairSelector" class="profit-input">
-                    {% for pair in trading_pairs %}
-                    <option value="{{ pair }}">{{ pair }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="profit-input-group">
-                <label>Investment Amount (USDT)</label>
-                <input type="number" id="realTimeAmount" class="profit-input" value="10" step="0.01" min="0">
-            </div>
-            <div class="profit-input-group">
-                <label>Real-time Opportunities</label>
-                <div id="realTimeProfitResult" class="profit-result">
-                    Calculating opportunities...
-                </div>
-            </div>
+        <div class="exchange-section">
+            <h2 class="exchange-title">Bybit Prices</h2>
+            <div id="bybit-prices" class="price-cards"></div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const socket = io();
-            const previousPrices = {
-                binance: {},
-                bybit: {}
-            };
+        const socket = io();
+        const binancePricesDiv = document.getElementById('binance-prices');
+        const bybitPricesDiv = document.getElementById('bybit-prices');
 
-            function updateConnectionStatus(status) {
-                const connectionStatus = document.getElementById('connectionStatus');
-                connectionStatus.className = 'connection-status';
-                
-                switch(status) {
-                    case 'connected':
-                        connectionStatus.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
-                        connectionStatus.style.color = 'var(--accent-green)';
-                        connectionStatus.textContent = '🟢 Connected';
-                        break;
-                    case 'disconnected':
-                        connectionStatus.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                        connectionStatus.style.color = 'var(--accent-red)';
-                        connectionStatus.textContent = '🔴 Disconnected';
-                        break;
-                    case 'connecting':
-                        connectionStatus.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                        connectionStatus.style.color = 'var(--accent-blue)';
-                        connectionStatus.textContent = '🔄 Connecting...';
-                        break;
-                }
-            }
-
-            function calculatePriceChange(newPrice, oldPrice) {
-                if (!oldPrice) return { value: 0, percentage: 0 };
-                const change = newPrice - oldPrice;
-                const percentage = (change / oldPrice) * 100;
-                return { value: change, percentage };
-            }
-
-            function formatPrice(price) {
-                return new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }).format(price);
-            }
-
-            function updatePriceDifference(pair) {
-                const binancePrice = previousPrices.binance[pair];
-                const bybitPrice = previousPrices.bybit[pair];
-                const diffElement = document.getElementById(`diff-${pair}`);
-                
-                if (binancePrice && bybitPrice) {
-                    const difference = ((binancePrice - bybitPrice) / bybitPrice) * 100;
-                    const formattedDiff = Math.abs(difference).toFixed(4);
-                    const direction = difference > 0 ? 'higher' : 'lower';
-                    diffElement.textContent = `Binance is ${formattedDiff}% ${direction} than Bybit`;
-                    diffElement.style.color = difference > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-                }
-            }
-
-            function updateExchangePrice(exchange, symbol, price, timestamp) {
-                const boxElement = document.getElementById(`${exchange}-${symbol}`);
-                if (!boxElement) return;
-
-                const priceElement = boxElement.querySelector('.price');
-                const changeElement = boxElement.querySelector('.price-change');
-                const timestampElement = boxElement.querySelector('.timestamp');
-                
-                const oldPrice = previousPrices[exchange][symbol];
-                previousPrices[exchange][symbol] = price;
-                
-                boxElement.classList.add('flash');
-                setTimeout(() => boxElement.classList.remove('flash'), 500);
-
-                priceElement.textContent = formatPrice(price);
-                
-                if (oldPrice) {
-                    const change = calculatePriceChange(price, oldPrice);
-                    const changeText = `${change.value >= 0 ? '▲' : '▼'} ${Math.abs(change.percentage).toFixed(2)}%`;
-                    changeElement.textContent = changeText;
-                    changeElement.style.color = change.value >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-                }
-                
-                timestampElement.textContent = timestamp;
-                updatePriceDifference(symbol);
-                calculateRealTimeProfit(); // Recalculate profits when prices update
-            }
-
-            function calculateRealTimeProfit() {
-                const pair = document.getElementById('pairSelector').value;
-                const amount = parseFloat(document.getElementById('realTimeAmount').value) || 10;
-                const resultElement = document.getElementById('realTimeProfitResult');
-                
-                const binancePrice = previousPrices.binance[pair];
-                const bybitPrice = previousPrices.bybit[pair];
-
-                if (!binancePrice || !bybitPrice) {
-                    resultElement.innerHTML = 'Waiting for price data...';
-                    return;
-                }
-
-                // Calculate quantities after fees
-                const BINANCE_FEE = 0.001; // 0.1%
-                const BYBIT_FEE = 0.001;   // 0.1%
-                
-                const binanceQuantity = amount / binancePrice * (1 - BINANCE_FEE);
-                const bybitQuantity = amount / bybitPrice * (1 - BYBIT_FEE);
-
-                // Calculate profits for both directions
-                const binanceToBybit = {
-                    quantity: binanceQuantity,
-                    profit: (binanceQuantity * bybitPrice * (1 - BYBIT_FEE)) - amount
-                };
-
-                const bybitToBinance = {
-                    quantity: bybitQuantity,
-                    profit: (bybitQuantity * binancePrice * (1 - BINANCE_FEE)) - amount
-                };
-
-                // Create result HTML
-                let resultHTML = `<div style="margin-bottom: 1rem">
-                    <strong>Current Prices:</strong><br>
-                    Binance: ${formatPrice(binancePrice)}<br>
-                    Bybit: ${formatPrice(bybitPrice)}<br>
-                    Price Difference: ${Math.abs(((binancePrice - bybitPrice) / bybitPrice) * 100).toFixed(4)}%
-                </div>`;
-
-                // Add profitable opportunities
-                if (binanceToBybit.profit > 0) {
-                    resultHTML += `
-                        <div class="result-item" style="background-color: rgba(34, 197, 94, 0.1); color: var(--accent-green); margin-bottom: 0.5rem">
-                            <strong>Binance → Bybit Opportunity:</strong><br>
-                            1. Buy ${binanceToBybit.quantity.toFixed(8)} ${pair.replace('USDT', '')} on Binance<br>
-                            2. Sell on Bybit<br>
-                            3. Estimated Profit: ${formatPrice(binanceToBybit.profit)}
-                        </div>`;
-                }
-
-                if (bybitToBinance.profit > 0) {
-                    resultHTML += `
-                        <div class="result-item" style="background-color: rgba(59, 130, 246, 0.1); color: var(--accent-blue);">
-                            <strong>Bybit → Binance Opportunity:</strong><br>
-                            1. Buy ${bybitToBinance.quantity.toFixed(8)} ${pair.replace('USDT', '')} on Bybit<br>
-                            2. Sell on Binance<br>
-                            3. Estimated Profit: ${formatPrice(bybitToBinance.profit)}
-                        </div>`;
-                }
-
-                if (binanceToBybit.profit <= 0 && bybitToBinance.profit <= 0) {
-                    resultHTML += `
-                        <div class="result-item" style="background-color: rgba(239, 68, 68, 0.1); color: var(--accent-red);">
-                            No profitable opportunities at current prices
-                        </div>`;
-                }
-
-                resultElement.innerHTML = resultHTML;
-            }
-
-            // Set up WebSocket event handlers
-            socket.on('connect', () => updateConnectionStatus('connected'));
-            socket.on('disconnect', () => updateConnectionStatus('disconnected'));
-
-            socket.on('price_update', function(data) {
-                // Update Binance prices
-                Object.entries(data.binance).forEach(([symbol, info]) => {
-                    updateExchangePrice('binance', symbol, info.price, info.timestamp);
-                });
-
-                // Update Bybit prices
-                Object.entries(data.bybit).forEach(([symbol, info]) => {
-                    updateExchangePrice('bybit', symbol, info.price, info.timestamp);
-                });
-            });
-
-            // Set up real-time calculation triggers
-            document.getElementById('pairSelector').addEventListener('change', calculateRealTimeProfit);
-            document.getElementById('realTimeAmount').addEventListener('input', calculateRealTimeProfit);
-
-            // Initial connection status
-            updateConnectionStatus('connecting');
+        socket.on('connect', () => {
+            console.log('Connected to server');
         });
+
+        socket.on('price_update', (data) => {
+            // Update Binance prices
+            updatePrices(data.binance, binancePricesDiv);
+            // Update Bybit prices
+            updatePrices(data.bybit, bybitPricesDiv);
+        });
+
+        function updatePrices(prices, container) {
+            container.innerHTML = '';
+            for (const [symbol, info] of Object.entries(prices)) {
+                const card = document.createElement('div');
+                card.className = 'price-card';
+                card.innerHTML = `
+                    <div class="symbol">${symbol}</div>
+                    <div class="price">$${parseFloat(info.price).toFixed(2)}</div>
+                    <div class="timestamp">Last updated: ${info.timestamp}</div>
+                `;
+                container.appendChild(card);
+            }
+        }
     </script>
 </body>
 </html>
